@@ -6,23 +6,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <style>
-        /* GUIDELINES CSS REMOVED (As requested) */
-        
-        .toggle-btn {
-            background: transparent;
-            border: 1px solid #aaa;
-            color: #aaa;
-            padding: 8px 15px;
-            font-size: 13px;
-            cursor: pointer;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            transition: 0.3s;
-            width: auto;
-            display: inline-block;
-        }
+        .toggle-btn { background: transparent; border: 1px solid #aaa; color: #aaa; padding: 8px 15px; border-radius: 20px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; display: inline-block; }
         .toggle-btn:hover { background: rgba(255,255,255,0.1); color: white; border-color: white; }
         .toggle-btn.active { background: #3f8f7c; border-color: #3f8f7c; color: white; }
+
+        .student-type-box { text-align: center; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        .student-type-box label { color: white; margin: 0 15px; cursor: pointer; font-size: 14px; }
+        .student-type-box input { margin-right: 5px; accent-color: #3f8f7c; }
+
+        .fee-card { background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+        .fee-summary { padding: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); font-weight: bold; color: white; list-style: none; }
+        .fee-summary::-webkit-details-marker { display: none; }
+        .fee-summary:hover { background: rgba(255,255,255,0.1); }
+        .fee-content { padding: 20px; border-top: 1px solid #444; }
+        details[open] .fee-summary { background: #3f8f7c; border-bottom: 1px solid #444; }
     </style>
 </head>
 <body>
@@ -33,187 +30,160 @@
                 <h2>Welcome, {{ user }}</h2>
                 <a href="/logout" style="color: #ff6b6b; font-weight: bold; text-decoration: none;">Logout <i class="fa-solid fa-right-from-bracket"></i></a>
             </div>
-            
             <h4 style="margin-bottom: 15px; color: #aaa;">Role: {{ role }}</h4>
-
             {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="flash-msg" style="margin-bottom: 20px;">{{ messages[0] }}</div>
-                {% endif %}
+                {% if messages %} <div class="flash-msg" style="margin-bottom: 20px;">{{ messages[0] }}</div> {% endif %}
             {% endwith %}
         </div>
         
         <div>
             {% if role == 'Student' %}
-                {% set my_fee = all_fees.get(user, {}) %}
                 
-                <div class="info-row" style="margin-bottom: 30px;">
-                    <p><strong>Fee Due:</strong> 50,000 INR</p>
-                    <p><strong>Date:</strong> {{ my_fee.date }}</p>
-                    <p><strong>Status:</strong> 
-                        <span style="color: {{ 'lightgreen' if my_fee.status == 'Paid' else 'orange' }}">
-                            {{ my_fee.status }}
-                        </span>
-                    </p>
+                <div class="student-type-box">
+                    <label><input type="radio" name="sType" value="hosteller" checked onclick="filterFees()"> Hosteller</label>
+                    <label><input type="radio" name="sType" value="dayscholar" onclick="filterFees()"> Day Scholar (Bus/Walk)</label>
                 </div>
 
-                {% if my_fee.status == 'Pending' %}
-                    <h3 style="margin-bottom: 20px;">Secure Payment</h3>
-                    <form method="POST">
-                        <div class="input-box"><i class="fa-solid fa-user-pen"></i><input type="text" name="payer_name" placeholder="Payer Name" required></div>
-                        
-                        <div class="input-box"><i class="fa-solid fa-building-columns"></i>
-                            <select name="payment_method" id="payMethod" onchange="toggleFields()" required>
-                                <option value="" disabled selected>Select Payment Method</option>
-                                <option value="UPI">UPI (GPay/PhonePe)</option>
-                                <option value="SBI">State Bank of India (SBI)</option>
-                                <option value="ICICI">ICICI Bank</option>
-                                <option value="HDFC">HDFC Bank</option>
-                                <option value="Axis">Axis Bank</option>
-                            </select>
+                {% set my_fees = all_fees.get(user, {}) %}
+                
+                {% for fee_type, fee_data in my_fees.items() %}
+                <details class="fee-card" name="fee-accordion" data-type="{{ fee_type }}">
+                    <summary class="fee-summary">
+                        <span><i class="fa-solid fa-receipt"></i> {{ fee_type }}</span>
+                        <span style="color: {{ 'lightgreen' if fee_data.status == 'Paid' else 'orange' }}">{{ fee_data.status }}</span>
+                    </summary>
+                    
+                    <div class="fee-content">
+                        <div class="info-row" style="margin-bottom: 20px;">
+                            <p><strong>Amount:</strong> {{ fee_data.amount }} INR</p>
+                            <p><strong>Due Date:</strong> {{ fee_data.date }}</p>
                         </div>
 
-                        <div class="input-box"><i class="fa-solid fa-credit-card"></i><input type="text" name="card_num" placeholder="12-Digit Card No" maxlength="12" pattern="\d{12}" required></div>
-                        
-                        <div class="input-box" id="upiField" style="display:none;">
-                            <i class="fa-solid fa-key"></i><input type="password" name="upi_pin" placeholder="Enter 4-Digit UPI PIN" maxlength="4">
-                        </div>
-                        <div class="input-box" id="bankField" style="display:none;">
-                            <i class="fa-solid fa-building"></i><input type="text" name="ifsc_code" placeholder="Enter Bank IFSC Code">
-                        </div>
+                        {% if fee_data.status == 'Pending' %}
+                            <form method="POST" onsubmit="attachStudentType(this)">
+                                <input type="hidden" name="fee_type" value="{{ fee_type }}">
+                                <input type="hidden" name="student_type_selection" class="student-type-hidden">
+                                
+                                <div class="input-box"><i class="fa-solid fa-user-pen"></i><input type="text" name="payer_name" placeholder="Payer Name" required></div>
+                                <div class="input-box"><i class="fa-solid fa-building-columns"></i>
+                                    <select name="payment_method" class="payMethodSelector" onchange="toggleFields(this)" required>
+                                        <option value="" disabled selected>Select Payment Method</option>
+                                        <option value="UPI">UPI (GPay/PhonePe)</option>
+                                        <option value="SBI">SBI Bank</option>
+                                        <option value="ICICI">ICICI Bank</option>
+                                        <option value="HDFC">HDFC Bank</option>
+                                        <option value="Axis">Axis Bank</option>
+                                    </select>
+                                </div>
+                                <div class="input-box"><i class="fa-solid fa-credit-card"></i><input type="text" name="card_num" placeholder="12-Digit Card No" maxlength="12" pattern="\d{12}" required></div>
+                                <div class="input-box upi-field" style="display:none;"><i class="fa-solid fa-key"></i><input type="password" name="upi_pin" placeholder="Enter 4-Digit UPI PIN" maxlength="4"></div>
+                                <div class="input-box bank-field" style="display:none;"><i class="fa-solid fa-building"></i><input type="text" name="ifsc_code" placeholder="Enter Bank IFSC Code"></div>
 
-                        <button type="submit" name="pay_fee">PAY NOW (AES ENCRYPTED)</button>
-                    </form>
-                {% else %}
-                    <div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px;">
-                        <h3 style="color: lightgreen; margin-bottom: 20px;">Fee Paid Successfully!</h3>
-                        <div style="text-align:left; width:fit-content; margin: 0 auto 20px auto; color:#ccc; line-height: 1.8;">
-                            <p><strong>Payer:</strong> <span style="color:white">{{ my_fee.get('payer_name','-') }}</span></p>
-                            <p><strong>Date:</strong> {{ my_fee.get('date') }}</p>
-                            <p><strong>From:</strong> <span style="color:#3f8f7c">{{ my_fee.get('issuing_bank','-') }}</span></p>
-                            <p><strong>Via:</strong> {{ my_fee.get('settlement','-') }}</p>
-                            <p><strong>To:</strong> <span style="color:#3f8f7c">{{ my_fee.get('acquiring_bank','HDFC') }}</span></p>
-                        </div>
-                        <a href="/download_receipt" class="btn-download" style="display:inline-block;">Download Receipt</a>
+                                <button type="submit" name="pay_fee">PAY {{ fee_data.amount }} INR (AES ENCRYPTED)</button>
+                            </form>
+                        {% else %}
+                            <div style="text-align:center; padding:10px; background:rgba(255,255,255,0.05); border-radius:5px;">
+                                <h4 style="color:lightgreen; margin-bottom:10px;">Payment Successful!</h4>
+                                <div style="text-align:left; font-size:13px; color:#ccc; margin-bottom:10px;">
+                                    <p>Payer: {{ fee_data.payer_name }}</p>
+                                    <p>Bank: {{ fee_data.issuing_bank }}</p>
+                                    <p>Date: {{ fee_data.date }}</p>
+                                </div>
+                                <a href="/download_receipt" class="btn-download">Download Receipt</a>
+                            </div>
+                        {% endif %}
                     </div>
-                {% endif %}
+                </details>
+                {% endfor %}
             {% endif %}
 
             {% if role == 'Accountant' %}
-                
                 <div class="tab-header">
                     <button class="tab-btn active" onclick="openTab('pending')">Pending</button>
                     <button class="tab-btn" onclick="openTab('paid')">Paid List</button>
                     <button class="tab-btn" onclick="openTab('all')">All Records</button>
                 </div>
 
-                <div id="pending" class="tab-content active">
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>ID</th><th>Status</th></tr></thead>
-                            <tbody>
-                                {% for u, d in all_fees.items() if d.status == 'Pending' %}
-                                <tr><td>{{ u }}</td><td style="color: orange;">Pending</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <div id="pending" class="tab-content active"><div class="table-container"><table><thead><tr><th>ID</th><th>Fee Type</th><th>Status</th></tr></thead><tbody>
+                    {% for u, fees in all_fees.items() %}
+                        {% set st_type = all_users[u].get('student_type') %}
+                        {% for f_type, f_data in fees.items() %}
+                            {% if f_data.status == 'Pending' %}
+                                {% if not (st_type == 'hosteller' and f_type == 'Bus Fee') and not (st_type == 'dayscholar' and f_type in ['Hostel Fee', 'Mess Fee']) %}
+                                    <tr><td>{{ u }}</td><td>{{ f_type }}</td><td style="color: orange;">Pending</td></tr>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </tbody></table></div></div>
 
-                <div id="paid" class="tab-content">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Payer</th>
-                                    <th>Bank</th> <th>Encrypted Data (AES)</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for u, d in all_fees.items() if d.status == 'Paid' %}
-                                <tr>
-                                    <td>{{ u }}</td>
-                                    <td>{{ d.get('payer_name', '-') }}</td>
-                                    <td>{{ d.get('issuing_bank', '-') }}</td> <td style="font-size: 11px; color: #aaa; font-family: monospace;">{{ d.get('encrypted_card', 'N/A') }}</td>
-                                    <td style="color: lightgreen;">Paid</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <div id="paid" class="tab-content"><div class="table-container"><table><thead><tr><th>ID</th><th>Fee Type</th><th>Payer</th><th>Bank</th><th>Encrypted Data</th><th>Status</th></tr></thead><tbody>
+                    {% for u, fees in all_fees.items() %}
+                        {% for f_type, f_data in fees.items() %}
+                            {% if f_data.status == 'Paid' %}
+                            <tr>
+                                <td>{{ u }}</td><td>{{ f_type }}</td><td>{{ f_data.get('payer_name','-') }}</td><td>{{ f_data.get('issuing_bank','-') }}</td>
+                                <td style="font-size:10px; color:#aaa;">{{ f_data.get('encrypted_card','-') }}</td>
+                                <td style="color: lightgreen;">Paid</td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </tbody></table></div></div>
 
-                 <div id="all" class="tab-content">
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>ID</th><th>Amount</th><th>Status</th></tr></thead>
-                            <tbody>
-                                {% for u, d in all_fees.items() %}
-                                <tr><td>{{ u }}</td><td>{{ d.amount }}</td><td>{{ d.status }}</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <div id="all" class="tab-content"><div class="table-container"><table><thead><tr><th>ID</th><th>Fee Type</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+                    {% for u, fees in all_fees.items() %}
+                        {% set st_type = all_users[u].get('student_type') %}
+                        {% for f_type, f_data in fees.items() %}
+                            {% if not (st_type == 'hosteller' and f_type == 'Bus Fee') and not (st_type == 'dayscholar' and f_type in ['Hostel Fee', 'Mess Fee']) %}
+                                <tr><td>{{ u }}</td><td>{{ f_type }}</td><td>{{ f_data.amount }}</td><td>{{ f_data.status }}</td></tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </tbody></table></div></div>
             {% endif %}
 
             {% if role == 'Admin' %}
                 <h3 style="color: #ff6b6b; margin-bottom: 15px;"><i class="fa-solid fa-user-shield"></i> User Management</h3>
-                
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {% for u_name, u_data in all_users.items() %}
-                                {% if u_data.role == 'Student' %}
-                                <tr>
-                                    <td>{{ u_name }}</td>
-                                    <td>{{ u_data.role }}</td>
-                                    <td>
-                                        {% if all_fees.get(u_name) %}
-                                            <span style="color: {{ 'lightgreen' if all_fees[u_name].status == 'Paid' else 'orange' }}">
-                                                {{ all_fees[u_name].status }}
-                                            </span>
-                                        {% else %} N/A {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('delete_user', target_user=u_name) }}" 
-                                           onclick="return confirm('Delete user?');"
-                                           style="color: #ff6b6b; margin-right: 15px;"><i class="fa-solid fa-trash"></i></a>
-                                        <a href="{{ url_for('reset_fee', target_user=u_name) }}" 
-                                           onclick="return confirm('Reset Fee?');"
-                                           style="color: orange;"><i class="fa-solid fa-rotate-right"></i></a>
-                                    </td>
-                                </tr>
+                <div class="table-container"><table>
+                    <thead><tr><th>User</th><th>Role</th><th>Pay Type</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                    {% for u_name, u_data in all_users.items() %}
+                        {% if u_data.role == 'Student' %}
+                            {% set st_type = u_data.get('student_type') %}
+                            {% for f_type, f_data in all_fees.get(u_name, {}).items() %}
+                                {% if not (st_type == 'hosteller' and f_type == 'Bus Fee') and not (st_type == 'dayscholar' and f_type in ['Hostel Fee', 'Mess Fee']) %}
+                                    <tr>
+                                        <td>{{ u_name }}</td>
+                                        <td>{{ u_data.role }}</td>
+                                        <td>{{ f_type }}</td>
+                                        <td>{{ f_data.amount }}</td>
+                                        <td><span style="color: {{ 'lightgreen' if f_data.status == 'Paid' else 'orange' }}">{{ f_data.status }}</span></td>
+                                        <td>
+                                            <a href="{{ url_for('delete_user', target_user=u_name) }}" onclick="return confirm('Delete User?')" style="color: #ff6b6b; margin-right: 15px;"><i class="fa-solid fa-trash"></i></a>
+                                            <a href="{{ url_for('reset_fee', target_user=u_name, fee_type=f_type) }}" onclick="return confirm('Reset this specific fee?')" style="color: orange;"><i class="fa-solid fa-rotate-right"></i></a>
+                                        </td>
+                                    </tr>
                                 {% endif %}
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 style="color: #aaa; margin-top: 40px; font-size: 16px;"><i class="fa-solid fa-clock-rotate-left"></i> Deleted User Logs</h3>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th style="background:#444;">Deleted User</th><th style="background:#444;">Role</th><th style="background:#444;">Time</th></tr></thead>
-                        <tbody>
-                            {% if deleted_logs %}
-                                {% for log in deleted_logs %}
-                                <tr>
-                                    <td style="color: #ff6b6b;">{{ log.username }}</td>
-                                    <td>{{ log.role }}</td>
-                                    <td>{{ log.deleted_at }}</td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr><td colspan="3" style="text-align:center; color:#777;">No deletion records found.</td></tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
+                        {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table></div>
+                
+                <h3 style="color: #aaa; margin-top: 30px;">Deleted Logs</h3>
+                <div class="table-container"><table>
+                    <thead><tr><th>Deleted User</th><th>Role</th><th>Time</th><th>Action</th></tr></thead>
+                    <tbody>
+                    {% for log in deleted_logs %}
+                    <tr>
+                        <td style="color:#ff6b6b">{{ log.username }}</td><td>{{ log.role }}</td><td>{{ log.deleted_at }}</td>
+                        <td><a href="{{ url_for('delete_log', log_id=loop.index0) }}" onclick="return confirm('Delete Permanently?')" style="color: #ff6b6b;"><i class="fa-solid fa-trash-can"></i></a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" style="text-align:center; color:#777">No logs.</td></tr>
+                    {% endfor %}
+                </tbody></table></div>
             {% endif %}
         </div>
     </div>
@@ -228,21 +198,44 @@
             event.currentTarget.classList.add("active");
         }
 
-        function toggleFields() {
-            var val = document.getElementById("payMethod").value;
+        function toggleFields(selectElement) {
+            var val = selectElement.value;
+            var form = selectElement.closest('form'); 
+            var upiField = form.querySelector('.upi-field');
+            var bankField = form.querySelector('.bank-field');
+            var upiInput = form.querySelector('input[name="upi_pin"]');
+            var ifscInput = form.querySelector('input[name="ifsc_code"]');
+
             if (val === "UPI") {
-                document.getElementById("upiField").style.display = "block";
-                document.getElementById("bankField").style.display = "none";
-                document.getElementsByName("upi_pin")[0].required = true;
-                document.getElementsByName("ifsc_code")[0].required = false;
-            } 
-            else {
-                document.getElementById("upiField").style.display = "none";
-                document.getElementById("bankField").style.display = "block";
-                document.getElementsByName("upi_pin")[0].required = false;
-                document.getElementsByName("ifsc_code")[0].required = true;
+                upiField.style.display = "block"; bankField.style.display = "none";
+                upiInput.required = true; ifscInput.required = false;
+            } else {
+                upiField.style.display = "none"; bankField.style.display = "block";
+                upiInput.required = false; ifscInput.required = true;
             }
         }
+
+        function filterFees() {
+            var type = document.querySelector('input[name="sType"]:checked').value;
+            var cards = document.querySelectorAll('.fee-card');
+            cards.forEach(card => {
+                var feeType = card.getAttribute('data-type');
+                if (type === 'hosteller') {
+                    if (feeType === 'Bus Fee') card.style.display = 'none';
+                    else card.style.display = 'block';
+                } else {
+                    if (feeType === 'Hostel Fee' || feeType === 'Mess Fee') card.style.display = 'none';
+                    else card.style.display = 'block';
+                }
+            });
+        }
+        
+        function attachStudentType(form) {
+            var type = document.querySelector('input[name="sType"]:checked').value;
+            form.querySelector('.student-type-hidden').value = type;
+        }
+        
+        window.onload = filterFees;
     </script>
 </body>
 </html>
