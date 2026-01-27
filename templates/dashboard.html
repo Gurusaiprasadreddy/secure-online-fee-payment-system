@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <style>
+        /* GUIDELINES CSS REMOVED (As requested) */
+        
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid #aaa;
+            color: #aaa;
+            padding: 8px 15px;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            transition: 0.3s;
+            width: auto;
+            display: inline-block;
+        }
+        .toggle-btn:hover { background: rgba(255,255,255,0.1); color: white; border-color: white; }
+        .toggle-btn.active { background: #3f8f7c; border-color: #3f8f7c; color: white; }
+    </style>
+</head>
+<body>
+    <div class="login-box dashboard-box" style="justify-content: flex-start;">
+        
+        <div style="margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>Welcome, {{ user }}</h2>
+                <a href="/logout" style="color: #ff6b6b; font-weight: bold; text-decoration: none;">Logout <i class="fa-solid fa-right-from-bracket"></i></a>
+            </div>
+            
+            <h4 style="margin-bottom: 15px; color: #aaa;">Role: {{ role }}</h4>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-msg" style="margin-bottom: 20px;">{{ messages[0] }}</div>
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        <div>
+            {% if role == 'Student' %}
+                {% set my_fee = all_fees.get(user, {}) %}
+                
+                <div class="info-row" style="margin-bottom: 30px;">
+                    <p><strong>Fee Due:</strong> 50,000 INR</p>
+                    <p><strong>Date:</strong> {{ my_fee.date }}</p>
+                    <p><strong>Status:</strong> 
+                        <span style="color: {{ 'lightgreen' if my_fee.status == 'Paid' else 'orange' }}">
+                            {{ my_fee.status }}
+                        </span>
+                    </p>
+                </div>
+
+                {% if my_fee.status == 'Pending' %}
+                    <h3 style="margin-bottom: 20px;">Secure Payment</h3>
+                    <form method="POST">
+                        <div class="input-box"><i class="fa-solid fa-user-pen"></i><input type="text" name="payer_name" placeholder="Payer Name" required></div>
+                        
+                        <div class="input-box"><i class="fa-solid fa-building-columns"></i>
+                            <select name="payment_method" id="payMethod" onchange="toggleFields()" required>
+                                <option value="" disabled selected>Select Payment Method</option>
+                                <option value="UPI">UPI (GPay/PhonePe)</option>
+                                <option value="SBI">State Bank of India (SBI)</option>
+                                <option value="ICICI">ICICI Bank</option>
+                                <option value="HDFC">HDFC Bank</option>
+                                <option value="Axis">Axis Bank</option>
+                            </select>
+                        </div>
+
+                        <div class="input-box"><i class="fa-solid fa-credit-card"></i><input type="text" name="card_num" placeholder="12-Digit Card No" maxlength="12" pattern="\d{12}" required></div>
+                        
+                        <div class="input-box" id="upiField" style="display:none;">
+                            <i class="fa-solid fa-key"></i><input type="password" name="upi_pin" placeholder="Enter 4-Digit UPI PIN" maxlength="4">
+                        </div>
+                        <div class="input-box" id="bankField" style="display:none;">
+                            <i class="fa-solid fa-building"></i><input type="text" name="ifsc_code" placeholder="Enter Bank IFSC Code">
+                        </div>
+
+                        <button type="submit" name="pay_fee">PAY NOW (AES ENCRYPTED)</button>
+                    </form>
+                {% else %}
+                    <div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                        <h3 style="color: lightgreen; margin-bottom: 20px;">Fee Paid Successfully!</h3>
+                        <div style="text-align:left; width:fit-content; margin: 0 auto 20px auto; color:#ccc; line-height: 1.8;">
+                            <p><strong>Payer:</strong> <span style="color:white">{{ my_fee.get('payer_name','-') }}</span></p>
+                            <p><strong>Date:</strong> {{ my_fee.get('date') }}</p>
+                            <p><strong>From:</strong> <span style="color:#3f8f7c">{{ my_fee.get('issuing_bank','-') }}</span></p>
+                            <p><strong>Via:</strong> {{ my_fee.get('settlement','-') }}</p>
+                            <p><strong>To:</strong> <span style="color:#3f8f7c">{{ my_fee.get('acquiring_bank','HDFC') }}</span></p>
+                        </div>
+                        <a href="/download_receipt" class="btn-download" style="display:inline-block;">Download Receipt</a>
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            {% if role == 'Accountant' %}
+                
+                <div class="tab-header">
+                    <button class="tab-btn active" onclick="openTab('pending')">Pending</button>
+                    <button class="tab-btn" onclick="openTab('paid')">Paid List</button>
+                    <button class="tab-btn" onclick="openTab('all')">All Records</button>
+                </div>
+
+                <div id="pending" class="tab-content active">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Status</th></tr></thead>
+                            <tbody>
+                                {% for u, d in all_fees.items() if d.status == 'Pending' %}
+                                <tr><td>{{ u }}</td><td style="color: orange;">Pending</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="paid" class="tab-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Payer</th>
+                                    <th>Bank</th> <th>Encrypted Data (AES)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u, d in all_fees.items() if d.status == 'Paid' %}
+                                <tr>
+                                    <td>{{ u }}</td>
+                                    <td>{{ d.get('payer_name', '-') }}</td>
+                                    <td>{{ d.get('issuing_bank', '-') }}</td> <td style="font-size: 11px; color: #aaa; font-family: monospace;">{{ d.get('encrypted_card', 'N/A') }}</td>
+                                    <td style="color: lightgreen;">Paid</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                 <div id="all" class="tab-content">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Amount</th><th>Status</th></tr></thead>
+                            <tbody>
+                                {% for u, d in all_fees.items() %}
+                                <tr><td>{{ u }}</td><td>{{ d.amount }}</td><td>{{ d.status }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if role == 'Admin' %}
+                <h3 style="color: #ff6b6b; margin-bottom: 15px;"><i class="fa-solid fa-user-shield"></i> User Management</h3>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for u_name, u_data in all_users.items() %}
+                                {% if u_data.role == 'Student' %}
+                                <tr>
+                                    <td>{{ u_name }}</td>
+                                    <td>{{ u_data.role }}</td>
+                                    <td>
+                                        {% if all_fees.get(u_name) %}
+                                            <span style="color: {{ 'lightgreen' if all_fees[u_name].status == 'Paid' else 'orange' }}">
+                                                {{ all_fees[u_name].status }}
+                                            </span>
+                                        {% else %} N/A {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('delete_user', target_user=u_name) }}" 
+                                           onclick="return confirm('Delete user?');"
+                                           style="color: #ff6b6b; margin-right: 15px;"><i class="fa-solid fa-trash"></i></a>
+                                        <a href="{{ url_for('reset_fee', target_user=u_name) }}" 
+                                           onclick="return confirm('Reset Fee?');"
+                                           style="color: orange;"><i class="fa-solid fa-rotate-right"></i></a>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #aaa; margin-top: 40px; font-size: 16px;"><i class="fa-solid fa-clock-rotate-left"></i> Deleted User Logs</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th style="background:#444;">Deleted User</th><th style="background:#444;">Role</th><th style="background:#444;">Time</th></tr></thead>
+                        <tbody>
+                            {% if deleted_logs %}
+                                {% for log in deleted_logs %}
+                                <tr>
+                                    <td style="color: #ff6b6b;">{{ log.username }}</td>
+                                    <td>{{ log.role }}</td>
+                                    <td>{{ log.deleted_at }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="3" style="text-align:center; color:#777;">No deletion records found.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function openTab(tabName) {
+            var contents = document.getElementsByClassName("tab-content");
+            for (var i = 0; i < contents.length; i++) contents[i].classList.remove("active");
+            var btns = document.getElementsByClassName("tab-btn");
+            for (var i = 0; i < btns.length; i++) btns[i].classList.remove("active");
+            document.getElementById(tabName).classList.add("active");
+            event.currentTarget.classList.add("active");
+        }
+
+        function toggleFields() {
+            var val = document.getElementById("payMethod").value;
+            if (val === "UPI") {
+                document.getElementById("upiField").style.display = "block";
+                document.getElementById("bankField").style.display = "none";
+                document.getElementsByName("upi_pin")[0].required = true;
+                document.getElementsByName("ifsc_code")[0].required = false;
+            } 
+            else {
+                document.getElementById("upiField").style.display = "none";
+                document.getElementById("bankField").style.display = "block";
+                document.getElementsByName("upi_pin")[0].required = false;
+                document.getElementsByName("ifsc_code")[0].required = true;
+            }
+        }
+    </script>
+</body>
+</html>

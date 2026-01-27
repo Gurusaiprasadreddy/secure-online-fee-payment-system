@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        .login-header-icon-container {
+            position: relative;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        /* Creates the circular icon with a border matching the login box background */
+        .login-header-icon {
+            background-color: #3f8f7c;
+            color: white;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 45px;
+            margin: -65px auto 20px auto; /* Pull it up and center it */
+            border: 6px solid #0b1423; /* Match the background color of the login box */
+        }
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: bold;
+            color: white;
+            font-size: 24px;
+        }
+        /* UPDATE THIS CLASS IN YOUR CSS */
+        .remember-forgot {
+            display: flex;                /* Enables side-by-side layout */
+            justify-content: space-between; /* Pushes content to far edges */
+            align-items: center;          /* Aligns them vertically in the middle */
+            margin-bottom: 20px;          /* Space below the section */
+            font-size: 14px;              /* Adjust font size if needed */
+            color: white;
+        }
+        
+        .remember-forgot a {
+            color: #3f8f7c;               /* Link color */
+            text-decoration: none;
+        }
+        
+        .remember-forgot a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="login-box">
+        <div class="login-header-icon-container">
+            <div class="login-header-icon">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <h2>Login</h2>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-msg">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
+        <form action="/login" method="POST">
+            
+            <div class="input-box">
+                <i class="fa-solid fa-user"></i>
+                <input type="text" name="username" placeholder="Roll No (CB.SC...) or Email" required>
+            </div>
+
+            <div class="input-box">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" name="password" placeholder="Password" minlength="6" maxlength="12" title="Password must be between 7 and 11 characters" required>
+            </div>
+
+            <div class="remember-forgot">
+                <div class="remember-me">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+                <a href="{{ url_for('forgot_password') }}">Forgot Password?</a>
+            </div>
+
+            <button type="submit">LOGIN</button>
+
+            <div class="register-link">
+                <center><p>Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p></center>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

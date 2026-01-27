@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="login-box">
+        <h2 style="text-align: center; margin-bottom: 30px; font-weight: bold;">Register</h2>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-msg">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
+        <form action="/register" method="POST">
+            
+            <div class="input-box">
+                <i class="fa-solid fa-user-tag"></i>
+                <select name="role" id="roleSelect" onchange="updateForm()">
+                    <option value="Student">Student</option>
+                    <option value="Accountant">Accountant</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+
+            <div class="input-box">
+                <i class="fa-solid fa-id-card"></i>
+                <input type="text" name="username" id="idInput" placeholder="Roll No (e.g. CB.SC.U4CSE23111)" required>
+            </div>
+
+            <div class="input-box">
+                <i class="fa-solid fa-envelope"></i>
+                <input type="email" name="email" placeholder="Email Address" required>
+            </div>
+
+            <div class="input-box">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" name="password" placeholder="Password" minlength="6" maxlength="12" title="Password must be between 7 and 11 characters" required>
+            </div>
+
+            <button type="submit">CREATE ACCOUNT</button>
+
+            <div class="bottom-link">
+                <a href="{{ url_for('home') }}">Back to Login</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function updateForm() {
+        var role = document.getElementById("roleSelect").value;
+        var input = document.getElementById("idInput");
+        
+        if (role === "Student") {
+            input.placeholder = "Roll No (e.g. CB.SC.U4CSE23111)";
+        } else if (role === "Accountant") {
+            input.placeholder = "Username or Employee ID";
+        } else {
+            input.placeholder = "Admin Username";
+        }
+    }
+</script>
+
+</body>
+</html>
