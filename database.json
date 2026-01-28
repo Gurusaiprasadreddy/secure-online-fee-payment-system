@@ -1,0 +1,116 @@
+{
+    "users": {
+        "CB.SC.U4CSE23111": {
+            "salt": "6f13cd9c7521c8f25d92fd59a8fa9aea",
+            "key": "f3b9b68b26aa4daa9a81cd3e24ffd62c57bab0fc8b015fb5c63a3c76b371714c",
+            "role": "Student",
+            "email": "student1@amrita.edu",
+            "student_type": "hosteller"
+        },
+        "CB.SC.U4CSE23112": {
+            "salt": "68afb8baf93fa1abf90504783573b59e",
+            "key": "f561780dbdf4cb75417551db6a7d58de04d46bfaa37304f8a5df76d97b11b296",
+            "role": "Student",
+            "email": "student2@amrita.edu",
+            "student_type": "dayscholar"
+        },
+        "accountant1": {
+            "salt": "2beeea977e0a90cd1bfdbe87b4e2f36d",
+            "key": "4c7a498753aae71c2b6709f71d264ad14bf0aea8137861883759a15e5ab980d2",
+            "role": "Accountant",
+            "email": "accounts@amrita.edu",
+            "student_type": null
+        },
+        "admin1": {
+            "salt": "27e6143d7dcb1408c10d3db8a96dadb1",
+            "key": "df1c269bf7ad74c214da51aafad9ad2ce5b858dd15bbb74a034d82caf558df50",
+            "role": "Admin",
+            "email": "admin@amrita.edu",
+            "student_type": null
+        },
+        "accountant2": {
+            "salt": "bc7eaef17ca4d891ce2583bb7325e71a",
+            "key": "8a6baa292ca996acc22a79eec9bd813be334d7cca54313a91efb24fda74b2e59",
+            "role": "Accountant",
+            "email": "gangeleader@gmail.com",
+            "student_type": null
+        }
+    },
+    "fees": {
+        "CB.SC.U4CSE23111": {
+            "Tuition Fee": {
+                "amount": 125000,
+                "status": "Paid",
+                "date": "2026-01-28 11:03:23",
+                "payer_name": "gurusaiprasadreddy",
+                "issuing_bank": "Axis",
+                "settlement": "RuPay Network",
+                "acquiring_bank": "Axis Corporate",
+                "encrypted_card": "AES_ENC_37658_5842",
+                "signature": "bkIrTzJuTW1LOXR2ZC9GYlRtSGQzd09jaG1BSjFTSVdVbjBCWkhPak8vRGNQUmIvd0xWV3lUV2tkeFlSaWhzL1VXQ24zV0hNWnJDUEZOeEFRMjgyMXlsTXllUDJvZWZwZk9HNnFPZ3VzSjNYYWdxRmRHeGFhK0d4Mzk3S29YK3ZNRW1RdVBGaFdycXlWRkZ1UnZZTlNsTnhrK0Z3MHk5RW9QL0dlb1Q3TWZEN2NhN3VJNXo0MjVsR3VFSVlMaUR0TWQ3TGEyQjhSeXVYYzdQYzlqTmY5c3NaZkFsMHBDRm01YVVBVjFQOHpRWjEzZWx3WmZuVE10WE1FeWkvekR6aTdlQ0xraGVjZVhEczFmY1JVaXZQZUVmRXQ5SGgxQ3VUQXZxS3RzNDVEKzJCR0FtNTZNbmRENyt3eUtQSllDaTV3aEZGcWhHYmxRUStaMUQwY0FPWWVnPT0="
+            },
+            "Hostel Fee": {
+                "amount": 45000,
+                "status": "Paid",
+                "date": "2026-01-28 11:03:49",
+                "payer_name": "gurusaiprasadreddy",
+                "issuing_bank": "SBI",
+                "settlement": "Mastercard",
+                "acquiring_bank": "ICICI Bank",
+                "encrypted_card": "AES_ENC_98896_5842",
+                "signature": "c0FtUmRBem9OOWFEVVl3b1EwWlEwNVFPcmVkZ0FkN05ZQVArSm5aQWNWdnoySzhQbDd1bTZGWFZ2QVQvWFpTbnRCRlhtMkNKelFOZHFIeG5kVGxoeWVheS9jVmRybW4yMkVKYU9HWWVoYjRxTld5MWk3MExZOWpVWDBURVBJZVRCeEtRSWY3RFBxTHRIRlZxTGliT0l0TlNjY3JFZXNUWnVhRlhDTnNBa3psYXJsYTR2Z1RCT1dnVHRObXh1MFFOK3BtbG1pZEtKWUs1c3pNS2xkRmcvblZDcWMrUk02TjR5SW9aTTFmWjNvVWxyMlVYdjZsdktpSFZ1OVlJK0NjU2pMcTU1eVJ2TFFhK0I5Y3ZVSnRzeUVZaGgzNFovTUdGQm9VamlXUjdNMDE5Ynh1emdVMHBBWEFtZnZRd0hldVBhNmRvOG9SUzUvM25lK0dpWHBHOU1BPT0="
+            },
+            "Mess Fee": {
+                "amount": 25000,
+                "status": "Paid",
+                "date": "2026-01-28 14:13:49",
+                "payer_name": "gurusaiprasadreddy",
+                "issuing_bank": "ICICI",
+                "settlement": "Visa Secure",
+                "acquiring_bank": "SBI Treasury",
+                "encrypted_card": "AES_ENC_41019_5843",
+                "signature": "S2lDRURlR2RmdW5vbGQ5UkVUZzZLT2ZSQ2t3ZTdLN2tucVhuTVlZQVlHWE1jSFV5TXV2THRFQ0VaazQ3REt2ZXZKR3lVa2szMDMrNmJ6V2FNNVd1VTRPa2JWdlBlMERLUXhKUGxVSmZqY3YwRCtvUy9ObC9JS2tRWDdoVUFRSTgyUzU0QmJlbitGb2dsWDBZTEV2dUdLd3VNd2JkOHdYcUZlZk1XWkRjS2pTbFJjM3JpNnR4QWIvVkxuQm9lRW13ME1XNkNuZTd5SEdKY25qZXVYZ1dCT240c2NoOFpvMUZOcnEzb2g3SE9OUVQ5OXp3Ri9RRFhBRXZ5UmlaWDd2Mzkrc1BqSXhvRWhOSkxnbHJoaDlNejlVRFY1MG5rdUhVMkVUUWlVVE1tbXVyYW11bGRFZ0VFeFYwaGI5RGtDWEhsc1NicUt6SUlBZ3NFZjI5K3NJYkdBPT0="
+            },
+            "Bus Fee": {
+                "amount": 15000,
+                "status": "Pending",
+                "date": "Due Now"
+            }
+        },
+        "CB.SC.U4CSE23112": {
+            "Tuition Fee": {
+                "amount": 125000,
+                "status": "Paid",
+                "date": "2026-01-28 14:15:20",
+                "payer_name": "vijay kumar",
+                "issuing_bank": "SBI",
+                "settlement": "Mastercard",
+                "acquiring_bank": "Axis Corporate",
+                "encrypted_card": "AES_ENC_16610_5843",
+                "signature": "RTRPbmFWeTc1TjdsTzRNVmQ4SVRnTHRnYkViZlU4cjc4WmxkaVhzZ25iUzVWY0svdmpZR0xuQ3BIL2FXb0pFYlVxZzNQZVFqcHRqY1JWc0xJamtMWXZnV2h2bDlYOEhDUk96UEszVzA4blB3cXdjS3UrQ2pmYnJMZzNqY1F0RTg0Q1hkdnI5ZTNYcmRrZHJ0aU81SkxRWGxxcVk2U0hGbnFlamxNS1dxT3luM3o3S1Fra3lsdURLTnNDbDFjd1ROaGQyNlliWHdrb29qUno4aWJ6cU8vSitWVWJ1OGVyVElvUjZsdys4K091QStGdDh4MlFWMG8vYmZ2RExOc3NTQ1FrK3M5WW54SXRTVkc2U0lKWVEvWkNhQUdHRUJLL0V6N2xPcWxScG45M1lFaU42TXJUTEpXTkI2bmNreGUwUjZGY1QzRGk2aGZQSUFLVXdGUDFwLzVBPT0="
+            },
+            "Hostel Fee": {
+                "amount": 45000,
+                "status": "Pending",
+                "date": "Due Now"
+            },
+            "Mess Fee": {
+                "amount": 25000,
+                "status": "Pending",
+                "date": "Due Now"
+            },
+            "Bus Fee": {
+                "amount": 15000,
+                "status": "Paid",
+                "date": "2026-01-28 14:51:06",
+                "payer_name": "gurusaiprasadreddy",
+                "issuing_bank": "ICICI",
+                "settlement": "Mastercard",
+                "acquiring_bank": "SBI Treasury",
+                "encrypted_card": "AES_ENC_87655_1566",
+                "signature": "WElBRGNDbU1TcTNhc1BRNmxxNkQ0d05ld1VxTHB2NWNlYWxmVFg0N1NnSU14N1c1dFJ5T216aTJQMlA2QnlTNUhMeUt1MzVSU0I0YWltcEJJMUJmL0lvenZqeVUxREMzRy91aFdlSkZ0OUJDZFR5d21zbk9XMGR0L05nS2ZObFZ3d1dscUtJQUh2aUdDVHR6MVJwUlQ5VWlmelZ1QlYrc1M0MzZHYTkxdnZvdHZaMW5XVEtHMVVvVVE2MzZ4WE1ueE02cVBjMGl6THEva0hPa1RpQlplakRrSXBKYXlDTEJCU2JMdFgxcHBMU2huKzlrLy9yeS84NXY5OUpVdSt1N0ZVUit2V1Zna292enRBa2FjY2MxcW93UHBPWVNOQWZ3eGUxdmhjc1hTTnIrL21TVGFqNUIxVGt5SzErNnIvek1iNkhsdE9Xb0h2K016c2JrKzZUMVBnPT0="
+            }
+        }
+    },
+    "deleted_logs": []
+}
