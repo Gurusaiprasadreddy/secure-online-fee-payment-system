@@ -146,7 +146,7 @@
             {% if role == 'Admin' %}
                 <h3 style="color: #ff6b6b; margin-bottom: 15px;"><i class="fa-solid fa-user-shield"></i> User Management</h3>
                 <div class="table-container"><table>
-                    <thead><tr><th>User</th><th>Role</th><th>Pay Type</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>User</th><th>Role</th><th>Pay Type</th><th>Amount</th><th>Digital Sig.</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                     {% for u_name, u_data in all_users.items() %}
                         {% if u_data.role == 'Student' %}
@@ -158,7 +158,18 @@
                                         <td>{{ u_data.role }}</td>
                                         <td>{{ f_type }}</td>
                                         <td>{{ f_data.amount }}</td>
+                                        
+                                        <td style="text-align:center;">
+                                            {% if f_data.status == 'Paid' and f_data.get('signature') %}
+                                                <i class="fa-solid fa-check-circle" style="color: lightgreen;" title="Signature Verified"></i> 
+                                                <span style="color:lightgreen; font-size:12px;">Verified</span>
+                                            {% else %}
+                                                <span style="color: #666;">-</span>
+                                            {% endif %}
+                                        </td>
+
                                         <td><span style="color: {{ 'lightgreen' if f_data.status == 'Paid' else 'orange' }}">{{ f_data.status }}</span></td>
+                                        
                                         <td>
                                             <a href="{{ url_for('delete_user', target_user=u_name) }}" onclick="return confirm('Delete User?')" style="color: #ff6b6b; margin-right: 15px;"><i class="fa-solid fa-trash"></i></a>
                                             <a href="{{ url_for('reset_fee', target_user=u_name, fee_type=f_type) }}" onclick="return confirm('Reset this specific fee?')" style="color: orange;"><i class="fa-solid fa-rotate-right"></i></a>
