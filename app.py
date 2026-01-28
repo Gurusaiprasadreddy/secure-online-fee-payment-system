@@ -22,7 +22,7 @@ deleted_users_db = []
 reset_tokens = {}
 DB_FILE = 'database.json'
 
-# --- JSON ENCODER (Prevents Crash) ---
+# --- JSON ENCODER ---
 class BytesEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, bytes):
@@ -35,9 +35,10 @@ def save_data():
     try:
         with open(DB_FILE, 'w') as f:
             json.dump(data, f, indent=4, cls=BytesEncoder)
-        print(" >>> [SYSTEM] Data Saved to disk.", file=sys.stdout)
+        # Use stderr for stability on Windows
+        print(" >>> [SYSTEM] Data Saved to disk.", file=sys.stderr)
     except Exception as e:
-        print(f" >>> [ERROR] Save failed: {e}", file=sys.stdout)
+        print(f" >>> [ERROR] Save failed: {e}", file=sys.stderr)
 
 def load_data():
     global users_db, fee_db, deleted_users_db
@@ -48,10 +49,10 @@ def load_data():
                 users_db = data.get("users", {})
                 fee_db = data.get("fees", {})
                 deleted_users_db = data.get("deleted_logs", [])
-            print(" >>> [SYSTEM] Data Loaded from disk.", file=sys.stdout)
+            print(" >>> [SYSTEM] Data Loaded from disk.", file=sys.stderr)
             return True
         except Exception as e:
-            print(f" >>> [ERROR] Load failed: {e}", file=sys.stdout)
+            print(f" >>> [ERROR] Load failed: {e}", file=sys.stderr)
             return False
     return False 
 
@@ -62,7 +63,7 @@ def create_test_user(username, email, password, role):
         users_db[username] = {
             'salt': salt.hex(), 'key': key.hex(), 'role': role, 'email': email, 'student_type': None
         }
-        print(f"[INIT] Created User: {username} | Role: {role}")
+        print(f"[INIT] Created User: {username} | Role: {role}", file=sys.stderr)
 
 # --- DEFAULTS ---
 def get_default_fees():
@@ -73,7 +74,7 @@ def get_default_fees():
         'Bus Fee': {'amount': 15000, 'status': 'Pending', 'date': 'Due Now'}
     }
 
-# --- PDF GENERATOR ---
+# --- PDF ---
 def create_receipt_pdf(user, data, fee_type, signature):
     pdf = FPDF()
     pdf.add_page()
@@ -127,9 +128,16 @@ def login():
             if sec_engine.verify_password(salt_val, key_val, password):
                 session['pre_auth_user'] = target_user
                 session['otp'] = random.randint(100000, 999999)
-                print(f"!!! MFA CODE: {session['otp']} !!!")
+                
+                # [FIX] Use sys.stderr to avoid "OSError: [Errno 22]"
+                print(f"!!! MFA CODE: {session['otp']} !!!", file=sys.stderr)
+                
                 return render_template('mfa.html')
-        except Exception as e: print(f"Login Error: {e}")
+        except Exception as e: 
+            try:
+                print(f"Login Error: {e}", file=sys.stderr)
+            except: pass # Use pass if printing fails completely
+            
     flash("Invalid Credentials"); return redirect(url_for('home'))
 
 @app.route('/verify_mfa', methods=['POST'])
@@ -167,24 +175,25 @@ def dashboard():
             settlement = random.choice(["Visa Secure", "Mastercard", "RuPay Network", "NPCI Switch"])
             acquiring_bank = random.choice(["HDFC Bank", "ICICI Bank", "SBI Treasury", "Axis Corporate"])
 
-            print("\n" + "="*60, file=sys.stdout)
-            print(f" >>> [SECURITY LOG] Transaction: {fee_type} for {user}", file=sys.stdout)
+            # Use stderr for logs to prevent crashes
+            print("\n" + "="*60, file=sys.stderr)
+            print(f" >>> [SECURITY LOG] Transaction: {fee_type} for {user}", file=sys.stderr)
             
             dummy_salt, dummy_hash = sec_engine.hash_password(card_num)
-            print(f"     Salt: {str(dummy_salt)[:30]}... | Hash: {str(dummy_hash)[:30]}...", file=sys.stdout)
+            print(f"     Salt: {str(dummy_salt)[:30]}... | Hash: {str(dummy_hash)[:30]}...", file=sys.stderr)
             
             sec_engine.encrypt_data(card_num) 
             encrypted_val = f"AES_ENC_{random.randint(10000,99999)}_{card_num[-4:]}"
-            print(f"     Stored Token: {encrypted_val}", file=sys.stdout)
-
-            # [BASE64 CONFIRMATION] This generates the Base64 signature
+            print(f"     Stored Token: {encrypted_val}", file=sys.stderr)
+            
             raw_sig = sec_engine.sign_data(f"Paid|{user}|{fee_type}|{datetime.now()}")
             encoded_sig = base64.b64encode(raw_sig.encode()).decode() 
             
-            print(f"     Signature: {encoded_sig[:40]}...", file=sys.stdout)
-            print("="*60 + "\n", file=sys.stdout)
+            session['last_receipt_sig'] = encoded_sig
+            session['last_fee_type'] = fee_type
+            print(f"     Signature: {encoded_sig[:40]}...", file=sys.stderr)
+            print("="*60 + "\n", file=sys.stderr)
 
-            # [FIX] Save Signature PERMANENTLY to Database
             fee_db[user][fee_type].update({
                 'status': 'Paid', 
                 'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
@@ -193,7 +202,7 @@ def dashboard():
                 'settlement': settlement, 
                 'acquiring_bank': acquiring_bank, 
                 'encrypted_card': encrypted_val,
-                'signature': encoded_sig  # Stored here for restart persistence
+                'signature': encoded_sig 
             })
             save_data(); msg = f"{fee_type} Paid Successfully!"
 
@@ -224,21 +233,24 @@ def delete_log(log_id):
         except IndexError: pass
     return redirect(url_for('dashboard'))
 
-# --- [FIX] DOWNLOAD ROUTE USES DB, NOT SESSION ---
 @app.route('/download_receipt/<fee_type>')
 def download_receipt(fee_type):
     user = session.get('user')
     if not user or user not in fee_db: return redirect(url_for('home'))
     
-    # Fetch data from Persistent DB (works after restart)
     fee_data = fee_db[user].get(fee_type, {})
+    if fee_data.get('status') != 'Paid': return redirect(url_for('dashboard'))
     
-    if fee_data.get('status') != 'Paid':
-        return redirect(url_for('dashboard'))
+    signature = fee_data.get('signature')
     
-    # Get the saved signature
-    signature = fee_data.get('signature', 'N/A')
-    
+    # Auto-Heal missing signatures
+    if not signature or signature == 'N/A':
+        print(f" >>> [AUTO-FIX] Generating missing signature for {user} - {fee_type}", file=sys.stderr)
+        raw_sig = sec_engine.sign_data(f"Paid|{user}|{fee_type}|{fee_data.get('date')}")
+        signature = base64.b64encode(raw_sig.encode()).decode()
+        fee_db[user][fee_type]['signature'] = signature
+        save_data()
+
     return send_file(create_receipt_pdf(user, fee_data, fee_type, signature), as_attachment=True, download_name=f"Receipt_{fee_type}.pdf", mimetype='application/pdf')
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -280,7 +292,7 @@ def logout(): session.clear(); return redirect(url_for('home'))
 if __name__ == '__main__':
     loaded = load_data()
     if not loaded:
-        print("--- FIRST RUN: INITIALIZING DEFAULTS ---")
+        print("--- FIRST RUN: INITIALIZING DEFAULTS ---", file=sys.stderr)
         create_test_user("CB.SC.U4CSE23111", "student1@amrita.edu", "password123", "Student")
         create_test_user("CB.SC.U4CSE23112", "student2@amrita.edu", "password123", "Student")
         create_test_user("accountant1", "accounts@amrita.edu", "password123", "Accountant")
