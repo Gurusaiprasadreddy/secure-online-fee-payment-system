@@ -89,7 +89,7 @@
                                     <p>Bank: {{ fee_data.issuing_bank }}</p>
                                     <p>Date: {{ fee_data.date }}</p>
                                 </div>
-                                <a href="/download_receipt" class="btn-download">Download Receipt</a>
+                                <a href="{{ url_for('download_receipt', fee_type=fee_type) }}" class="btn-download">Download Receipt</a>
                             </div>
                         {% endif %}
                     </div>

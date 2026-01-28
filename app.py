@@ -22,7 +22,7 @@ deleted_users_db = []
 reset_tokens = {}
 DB_FILE = 'database.json'
 
-# --- JSON ENCODER (Kept your fix) ---
+# --- JSON ENCODER (Prevents Crash) ---
 class BytesEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, bytes):
@@ -73,27 +73,32 @@ def get_default_fees():
         'Bus Fee': {'amount': 15000, 'status': 'Pending', 'date': 'Due Now'}
     }
 
-# --- PDF ---
+# --- PDF GENERATOR ---
 def create_receipt_pdf(user, data, fee_type, signature):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 18); pdf.cell(0, 10, txt="Amrita School of Computing", ln=1, align='C')
     pdf.set_font("Arial", 'B', 14); pdf.cell(0, 10, txt=f"{fee_type} Receipt", ln=1, align='C'); pdf.ln(10)
+    
     pdf.set_font("Arial", size=11); line_h = 8
     pdf.cell(0, line_h, txt=f"Student ID: {user}", ln=1)
     pdf.cell(0, line_h, txt=f"Fee Type: {fee_type}", ln=1)
     pdf.cell(0, line_h, txt=f"Amount Paid: {data.get('amount')} INR", ln=1)
     pdf.cell(0, line_h, txt=f"Transaction Date: {data.get('date')}", ln=1)
     pdf.cell(0, line_h, txt=f"Payment Status: SUCCESS", ln=1); pdf.ln(5)
+    
     pdf.set_font("Arial", 'B', 12); pdf.cell(0, 10, txt="Routing Details:", ln=1)
     pdf.set_font("Arial", size=11)
     pdf.cell(0, line_h, txt=f"From: {data.get('issuing_bank')}", ln=1)
     pdf.cell(0, line_h, txt=f"Via: {data.get('settlement')}", ln=1)
     pdf.cell(0, line_h, txt=f"To: {data.get('acquiring_bank')}", ln=1); pdf.ln(5)
+    
     pdf.set_font("Arial", 'B', 12); pdf.cell(0, 10, txt="Digital Signature (Integrity Check):", ln=1)
     pdf.set_font("Courier", size=8); pdf.multi_cell(0, 4, txt=signature); pdf.ln(15)
+    
     pdf.set_y(-30); pdf.set_font("Arial", 'I', 9)
     pdf.cell(0, 10, txt="This receipt is computer generated and AES encrypted.", ln=1, align='C')
+    
     buffer = io.BytesIO(); pdf_output = pdf.output(dest='S').encode('latin-1'); buffer.write(pdf_output); buffer.seek(0)
     return buffer
 
@@ -162,24 +167,33 @@ def dashboard():
             settlement = random.choice(["Visa Secure", "Mastercard", "RuPay Network", "NPCI Switch"])
             acquiring_bank = random.choice(["HDFC Bank", "ICICI Bank", "SBI Treasury", "Axis Corporate"])
 
-            # --- LOGS (Restored) ---
             print("\n" + "="*60, file=sys.stdout)
             print(f" >>> [SECURITY LOG] Transaction: {fee_type} for {user}", file=sys.stdout)
+            
             dummy_salt, dummy_hash = sec_engine.hash_password(card_num)
             print(f"     Salt: {str(dummy_salt)[:30]}... | Hash: {str(dummy_hash)[:30]}...", file=sys.stdout)
+            
             sec_engine.encrypt_data(card_num) 
             encrypted_val = f"AES_ENC_{random.randint(10000,99999)}_{card_num[-4:]}"
             print(f"     Stored Token: {encrypted_val}", file=sys.stdout)
+
+            # [BASE64 CONFIRMATION] This generates the Base64 signature
             raw_sig = sec_engine.sign_data(f"Paid|{user}|{fee_type}|{datetime.now()}")
             encoded_sig = base64.b64encode(raw_sig.encode()).decode() 
-            session['last_receipt_sig'] = encoded_sig; session['last_fee_type'] = fee_type
+            
             print(f"     Signature: {encoded_sig[:40]}...", file=sys.stdout)
             print("="*60 + "\n", file=sys.stdout)
 
+            # [FIX] Save Signature PERMANENTLY to Database
             fee_db[user][fee_type].update({
-                'status': 'Paid', 'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-                'payer_name': payer_name, 'issuing_bank': issuing_bank, 
-                'settlement': settlement, 'acquiring_bank': acquiring_bank, 'encrypted_card': encrypted_val
+                'status': 'Paid', 
+                'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+                'payer_name': payer_name, 
+                'issuing_bank': issuing_bank, 
+                'settlement': settlement, 
+                'acquiring_bank': acquiring_bank, 
+                'encrypted_card': encrypted_val,
+                'signature': encoded_sig  # Stored here for restart persistence
             })
             save_data(); msg = f"{fee_type} Paid Successfully!"
 
@@ -194,12 +208,10 @@ def delete_user(target_user):
         save_data()
     return redirect(url_for('dashboard'))
 
-# --- [FIX] GRANULAR RESET: Only resets the specific fee passed in URL ---
 @app.route('/admin/reset_fee/<target_user>/<fee_type>')
 def reset_fee(target_user, fee_type):
     if session.get('role') == 'Admin' and target_user in fee_db: 
         defaults = get_default_fees()
-        # Reset ONLY this specific fee key, leave others as they are
         if fee_type in fee_db[target_user]:
             fee_db[target_user][fee_type] = defaults[fee_type]
             save_data()
@@ -212,11 +224,22 @@ def delete_log(log_id):
         except IndexError: pass
     return redirect(url_for('dashboard'))
 
-@app.route('/download_receipt')
-def download_receipt():
-    user = session.get('user'); fee_type = session.get('last_fee_type')
-    if not user or not fee_type: return redirect(url_for('home'))
-    return send_file(create_receipt_pdf(user, fee_db.get(user, {}).get(fee_type, {}), fee_type, session.get('last_receipt_sig', '')), as_attachment=True, download_name=f"Receipt_{fee_type}.pdf", mimetype='application/pdf')
+# --- [FIX] DOWNLOAD ROUTE USES DB, NOT SESSION ---
+@app.route('/download_receipt/<fee_type>')
+def download_receipt(fee_type):
+    user = session.get('user')
+    if not user or user not in fee_db: return redirect(url_for('home'))
+    
+    # Fetch data from Persistent DB (works after restart)
+    fee_data = fee_db[user].get(fee_type, {})
+    
+    if fee_data.get('status') != 'Paid':
+        return redirect(url_for('dashboard'))
+    
+    # Get the saved signature
+    signature = fee_data.get('signature', 'N/A')
+    
+    return send_file(create_receipt_pdf(user, fee_data, fee_type, signature), as_attachment=True, download_name=f"Receipt_{fee_type}.pdf", mimetype='application/pdf')
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
